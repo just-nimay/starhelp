@@ -1,3 +1,4 @@
+# Импорт необходимых библиотек
 from selenium.common.exceptions import NoSuchElementException
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -12,6 +13,8 @@ import os
 
 from dotenv import load_dotenv
 
+# Сдесь хранятся дни недели,
+# которые нужны для форматирования текста
 WEEKDAYS = ['Понедельник',
             "Вторник",
             "Среда",
@@ -21,34 +24,45 @@ WEEKDAYS = ['Понедельник',
             "Воскресенье"]
 
 
+# В этой функции мы переобразовываем дату date
+# из типа datetime модуля datetime в строку.
 def transform_date(date: datetime) -> str:
-    """Transform date from datetime to str.
-
-        :Return:
-            ::
-
-                '{week_day}, {day} {months[int(month) - 1]} {year} г.'
-        """
-
+    # список с месяцами
+    # он нужен чтобы перевести номер месяца в его название
     months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
               'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
+
+    # разбиваем дату date на день, месяц и год
     day, month, year = date.split('.')
+    # формируем объект типа datetime чтобы получить
+    # порядковый номер недели
     a = datetime.datetime(int(year),
                           int(month),
                           int(day))
+    # по порядковому номеру находим название дня недели
     week_day = WEEKDAYS[a.weekday()]
 
+    # формируем нужную нам строку и возвращаем ее
     return f'{week_day}, {day} {months[int(month) - 1]} {year} г.'
 
 
+# в этой функции проверяется существование
+# пути до определенного html элемента,
+# который содержит в себе текст
 def check_exists_by_xpath(driver, xpath):
     try:
+        # пытаемся получить путь
         driver.find_element(By.XPATH, xpath)
     except NoSuchElementException:
+        # если возникает ошибка, то пути нет
+        # и поэтому возвращаем False
         return False
+    # если ошибки не возникло, то путь
+    # существует
     return True
 
 
+# Проверка существования тэга html
 def check_exists_by_tag(driver, tag):
     try:
         driver.find_element(By.TAG_NAME, tag)
@@ -57,9 +71,11 @@ def check_exists_by_tag(driver, tag):
     return True
 
 
+# Функция выхода из учетной записи sgo.rso23.ru
 def close_site(page: webdriver.Chrome) -> None:
 
     if check_exists_by_xpath(page, "//*[contains(text(), 'Выход')]"):
+        # если есть нужные нам кнопки, то нажимаем их и выходим
         page.find_element(
             By.XPATH, "//*[contains(text(), 'Выход')]").click()
         t.sleep(0.2)
@@ -67,6 +83,8 @@ def close_site(page: webdriver.Chrome) -> None:
             By.XPATH, "//*[contains(text(), 'Да')]").click()
 
 
+# функция проверки существования
+# html элемента с определенным классом
 def check_exists_by_classname(driver, name):
     try:
         driver.find_element(By.CLASS_NAME, name)
@@ -75,15 +93,25 @@ def check_exists_by_classname(driver, name):
     return True
 
 
+# Фунция загрузки страницы
+# принимает ссылку на любую страницу
+# домена sgo.rso23.ru
 def get_page(url) -> webdriver.Chrome:
+    # загружаем данные для входа
     load_dotenv('.env')
 
+    # создаем браузер
     options = Options()
     options.add_argument("--headless")
     browser = webdriver.Chrome()
+
+    # открываем страницу
     browser.get(url)
+    # ждем 2 сек
     t.sleep(2)
 
+    # далее находим элементы и нажимаем на кнопки,
+    # переодически ожидая
     browser.find_element(By.CLASS_NAME, "select2-selection__arrow").click()
 
     t.sleep(0.5)
@@ -92,9 +120,11 @@ def get_page(url) -> webdriver.Chrome:
     t.sleep(0.5)
     browser.find_element(By.CLASS_NAME, "select2-results__option").click()
     t.sleep(0.5)
-    browser.find_element(By.NAME, 'loginname').send_keys(os.getenv('SGORSO_LOGIN'))
+    browser.find_element(By.NAME, 'loginname').send_keys(
+        os.getenv('SGORSO_LOGIN'))
     t.sleep(0.5)
-    browser.find_element(By.NAME, 'password').send_keys(os.getenv('SGORSO_PASS'))
+    browser.find_element(By.NAME, 'password').send_keys(
+        os.getenv('SGORSO_PASS'))
     t.sleep(0.5)
     browser.find_element(By.CLASS_NAME, "primary-button").click()
     t.sleep(0.5)
@@ -103,14 +133,22 @@ def get_page(url) -> webdriver.Chrome:
             By.XPATH, "//*[contains(text(), 'Продолжить')]").click()
     t.sleep(2)
 
+    # когда мы оказались на нужной странице
+    # уже в нашем аккауне, возвращаем
+    # страницу
     return browser
 
 
+# функция получения данных на неделю
 def get_studentdiary() -> dict:
+    # ссылка на страницу
     url = 'https://sgo.rso23.ru/angular/school/studentdiary/'
 
+    # получаем данные со страницы
     page = get_page(url)
     t.sleep(3)
+    # далее происходит сложные переборы
+    # и поиски нужной информации (мне лень объяснять)
     data = page.find_elements(By.CLASS_NAME, 'day_table')
     diary = {}
     for day in data:
@@ -147,100 +185,9 @@ def get_studentdiary() -> dict:
                         By.TAG_NAME, 'a').text
                     if homework not in diary[day][num_subject]:
                         diary[day][num_subject].append(homework)
-
+    # завершаем сессию
     close_site(page)
     page.close()
 
+    # возвращаем полученные данные со страницы
     return diary
-
-    '''
-for day in diary:
-    print('\n\n', day)
-    for num_sub in diary[day]:
-        print(num_sub, diary[day][num_sub])
-        
-    ------------
-    
- Понедельник, 22 января 2024 г.
-1 []
-2 ['Основы безопасности жизнедеятельности', '08:50 - 09:30 , 301', 'Параграф 18 с. 264-267']
-3 ['Математика', '09:50 - 10:30 , 107', 'Выполнить работу на Яклассе https://www.yaklass.ru/TestWork/CopyShared/rmMB5FiMbUCZwGXy5aQ6Fw']
-4 ['Физическая культура', '10:40 - 11:20 , большой спортивный зал', 'Выполнять комплекс общеразвивающих упражнений']
-5 ['Иностранный язык (английский)', '11:30 - 12:10 , 304']
-6 ['История', '12:20 - 13:00 , 208', 'Изучить и подготовить устный пересказ с. 156-161, подготовить устные ответы на вопросы, заданные в тексте параграфа, научится устно объяснять даты и термины, выделенные в тексте параграфа жирным шрифтом или курсивом.']
-7 ['Разговоры о важном', '13:10 - 13:50 , 207', 'Инд. задание']
-8 []
-9 []
-    '''
-
-    page.close()
-
-    return diary
-
-
-def get_day(date=None) -> dict:
-    if date is None:
-        date = str(datetime.datetime.today().strftime('%d.%m.%Y'))
-
-    url = 'https://sgo.rso23.ru/angular/school/schedule/day/'
-
-    page = get_page(url)
-    t.sleep(1)
-    data = page.find_elements(By.TAG_NAME, 'tbody')
-    day_data = {}
-    day_data[date] = {}
-    count = 0
-    for row in data:
-        trs = row.find_elements(By.TAG_NAME, 'tr')
-        for tr in trs:
-
-            if 'Уроки' in tr.text:
-                continue
-
-            count += 1
-            day_data[date][count] = []
-
-            if 'Занятие' in tr.text:
-                time, subject = tr.text.split('Занятие:')
-            else:
-                time, subject = tr.text.split('Урок:')
-            day_data[date][count].append(time.strip())
-            day_data[date][count].append(subject)
-
-    close_site(page)
-    page.close()
-
-    return day_data
-
-
-def get_homework(date=None) -> dict:
-    if date is None:
-        date = datetime.datetime.today()
-        date += datetime.timedelta(days=1)
-        date = date.strftime('%d.%m.%Y')
-
-    date = transform_date(date)
-
-    studentdiary = get_studentdiary()
-
-    print(studentdiary[date])
-
-    return {date: studentdiary[date]}
-
-
-def now_lesson() -> list:
-    time = datetime.datetime.now().time()
-
-    day = get_day()
-    for date in day:
-        for num_sub in day[date]:
-            if len(day[date][num_sub]) == 0:
-                continue
-            time_interval = day[date][num_sub][0].replace(' ', '').split('-')
-            time_end = datetime.datetime.strptime(
-                time_interval[1], '%H:%M').time()
-
-            if time_end < time:
-                continue
-            else:
-                return day[date][num_sub]
