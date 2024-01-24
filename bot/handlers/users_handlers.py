@@ -1,12 +1,46 @@
 from aiogram import types, Dispatcher
 
 
-from bot.parser.parser import get_studentdiary, now_lesson
+from bot.parser.parser import get_studentdiary
 from bot.database.db import create_tables, update_data
 
 from bot.database.gets import get_homework, nxtlessn, call_schedule, subjects_schedule
 
 import datetime
+
+
+BOT_CMDS = {
+    'скинь дз': 1,
+    'пришли дз': 1,
+    "отправь дз": 1,
+    "отправь домашнее задание": 1,
+    "скинь домашнее задание": 1,
+    "дз скинь": 1,
+
+    "какой щас урок": 2,
+    "какой щас урок?": 2,
+    "что за урок": 2,
+    "что за урок щас": 2,
+    "какой сейчас урок": 2,
+    "какой сейчас урок?": 2,
+    "что за урок сейчас": 2,
+    "какой ща урок": 2,
+    "че ща за урок": 2,
+    "че за урок ща": 2,
+
+    "какой сдедующий урок": 2,
+    "какой сдедующий урок?": 2,
+    "что за урок сдедующий": 2,
+    'следующий урок': 2,
+
+    "когда звонок": 3,
+    "когда звонок?": 3,
+
+    "скинь расписание": 4,
+    "какое расписание": 4,
+    "какое расписание сегодня": 4,
+
+}
 
 
 async def cmd_start(msg: types.Message) -> None:
@@ -16,18 +50,6 @@ async def cmd_start(msg: types.Message) -> None:
         text=reply_text,
         reply=True,
         # reply_markup=get_main_ikb()
-    )
-
-
-async def listening(msg: types.Message) -> None:
-    if msg.from_user.id != 1277756013:
-        return
-    if msg.text.startswith('бот'):
-        command = msg.text[3:]
-        print(command)
-
-    await msg.answer(
-        text=msg.text
     )
 
 
@@ -60,21 +82,6 @@ async def studentdiary(msg: types.Message) -> None:
         await msg.answer(text=text)
 
 
-async def next_lesson(msg: types.Message) -> None:
-    await msg.answer('Ваш запрос в обработке...', reply=True)
-
-    time, subject = now_lesson()
-
-    message = 'Сделующий / Текущий урок:\n\n'
-    message += f'{subject}\n'
-    message += time
-
-    await msg.answer(
-        text=message,
-        reply=True
-    )
-
-
 async def update_database(msg: types.Message) -> None:
     await msg.answer('Ваш запрос в обработке...', reply=True)
     create_tables()
@@ -82,10 +89,13 @@ async def update_database(msg: types.Message) -> None:
     await msg.answer('База данных успешно обновлена!', reply=True)
 
 
-async def homework(msg: types.Message) -> None:
+async def homework(msg: types.Message, call=False) -> None:
     await msg.answer('Ваш запрос в обработке...', reply=True)
 
-    args = msg.get_args()
+    args = ''
+    if not call:
+        args = msg.get_args()
+
     homework_data = get_homework()
 
     if len(args) != 0:
@@ -112,6 +122,7 @@ async def homework(msg: types.Message) -> None:
 async def lesson_now(msg: types.Message) -> None:
 
     data = nxtlessn()
+    print("DATA", data)
     subject = data['subject_name']
     timestart = data['timestart']
     timeend = data['timeend']
@@ -144,9 +155,11 @@ async def calls(msg: types.Message) -> None:
     )
 
 
-async def schedule(msg: types.Message) -> None:
+async def schedule(msg: types.Message, call=False) -> None:
 
-    args = msg.get_args()
+    args = ''
+    if not call:
+        args = msg.get_args()
     data = subjects_schedule()
 
     if len(args) != 0:
@@ -173,6 +186,38 @@ async def schedule(msg: types.Message) -> None:
     )
 
 
+async def listening(msg: types.Message) -> None:
+    if msg.from_user.id != 1277756013:
+        return
+    first_word = msg.text.split(' ')[0].lower()
+    if ',' in first_word:
+        first_word = first_word.replace(',', '')
+
+    if first_word in ['бот', 'ботик', 'ботяра']:
+        cmd = msg.text.replace(first_word, '').replace(
+            ',', '').lower().lstrip()
+        print(cmd)
+        for bot_cmd in BOT_CMDS:
+            if cmd == bot_cmd:
+                command = BOT_CMDS[bot_cmd]
+                if command == 1:
+                    await homework(msg, call=True)
+                    return
+                if command == 2:
+                    await lesson_now(msg)
+                    return
+                if command == 3:
+                    await calls(msg)
+                    return
+                if command == 4:
+                    await schedule(msg, call=True)
+                    return
+
+        await msg.answer(
+            text='Команда не распознана'
+        )
+
+
 def register_user_handlers(dp: Dispatcher) -> None:
 
     dp.register_message_handler(cmd_start, commands=['start'])
@@ -182,4 +227,4 @@ def register_user_handlers(dp: Dispatcher) -> None:
     dp.register_message_handler(update_database, commands=['update_database'])
     dp.register_message_handler(calls, commands=['calls'])
     dp.register_message_handler(schedule, commands=['schedule'])
-    # dp.register_message_handler(listening, lambda msg: msg.text)
+    dp.register_message_handler(listening, lambda msg: msg.text)

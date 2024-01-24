@@ -98,25 +98,40 @@ def call_schedule() -> dict:
         return ready
 
 
-def nxtlessn() -> dict:
-    time = datetime.datetime.now().time()
-    date = datetime.datetime.today()
-    date = date.strftime('%d.%m.%Y')
+def nxtlessn(date=None) -> dict:
+    if date is None:
+        time = datetime.datetime.now().time()
+        date = datetime.datetime.today()
+        date = date.strftime('%d.%m.%Y')
 
+    time = datetime.datetime.now().time()
     day = transform_date(date)
-    weekday, date = day.split(',')
-    date_day, date_mounth, date_year = date[1:-3].split(' ')
+    print(date)
+    print('DAY', day)
+    weekday, datef = day.split(',')
+    date_day, date_mounth, date_year = datef[1:-3].split(' ')
 
     date_id = get_date_id(date_year, date_day, date_mounth)
 
     calls = call_schedule()
+
+    timemax = str(calls[9]['timeend'])
+    timedate = datetime.datetime.strptime(
+        f'{date} {timemax}', '%d.%m.%Y %H:%M:%S')
+    now = datetime.datetime.now()
+    if timedate < now:
+        date = datetime.datetime.today()
+        date += datetime.timedelta(days=1)
+        date = date.strftime('%d.%m.%Y')
+        data = nxtlessn(date=date)
+        return data
+    print('YES YES YES')
     for call in calls:
         timestart = calls[call]['timestart']
-        timeend = datetime.datetime.strptime(
-            str(calls[call]['timeend']), '%H:%M:%S').time()
-        if timeend < time:
-            continue
-        else:
+        timeend = str(calls[call]['timeend'])
+        timeend_date = datetime.datetime.strptime(
+            f'{date} {timeend}', '%d.%m.%Y %H:%M:%S')
+        if timeend_date > now:
             number_subject_id = call
 
             connection = connect_to_database()
