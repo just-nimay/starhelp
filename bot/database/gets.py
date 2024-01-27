@@ -62,6 +62,7 @@ def get_homework(date=None) -> dict:
     weekday, date = day.split(',')
     date_day, date_mounth, date_year = date[1:-3].split(' ')
     # получение id даты
+    print(date_year, date_day, date_mounth)
     date_id = get_date_id(date_year, date_day, date_mounth)
 
     # создание шаблона ответа
@@ -156,7 +157,12 @@ def nxtlessn(date=None) -> dict:
         # сегодняшнего последнего урока то
         # вызов этой же функции, но с завтрешней датой
         date = datetime.datetime.today()
+        # если сегодня суббота и уроков больше нет, то
+        # вернуть None
+        if date.weekday() == 5:
+            return None
         date += datetime.timedelta(days=1)
+
         date = date.strftime('%d.%m.%Y')
         data = nxtlessn(date=date)
         # возвращение данных о текущем или следующем уроке

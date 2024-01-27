@@ -76,6 +76,9 @@ async def update_database(msg: types.Message) -> None:
 # то будет присвоено переменно call значение False
 async def homework(msg: types.Message, call=False) -> None:
     await msg.answer('Ваш запрос в обработке...', reply=True)
+    # проверить какой сегодня день
+    date = datetime.datetime.today()
+    week_day = date.weekday()
 
     # по умолчанию аргумент команды пуст
     args = ''
@@ -102,6 +105,18 @@ async def homework(msg: types.Message, call=False) -> None:
             # правильном фомате аргумента
             await msg.answer('Введите дату в формате DD.MM.YYYY')
             return
+    # если завтра воскреснье, то
+    # получить домашнее задание на понедельник
+    elif week_day == 6 or week_day == 5:
+        print('YESS')
+
+        if week_day == 6:
+            date += datetime.timedelta(days=1)
+        if week_day == 5:
+            date += datetime.timedelta(days=2)
+
+        date = date.strftime('%d.%m.%Y')
+        homework_data = get_homework(date)
     else:
         # В случае, если агрумента нет
         homework_data = get_homework()
@@ -121,8 +136,22 @@ async def homework(msg: types.Message, call=False) -> None:
 
 # функция, отвечающая за команду /lesson_now
 async def lesson_now(msg: types.Message) -> None:
+
+    # если сегодня воскресенье,
+    # то сообщить что уроков нет и
+    # закончить выполнение команды
+    week_day = datetime.datetime.now().weekday()
+    if week_day == 6:
+        await msg.answer(text='Отдыхай, сегодня воскресенье')
+        return
+
     # получение данных о следующем уроке
     data = nxtlessn()
+    # Если функц. вернула Null, то значит сегодня
+    # суббота и уроков больше нет
+    if data is None:
+        await msg.answer(text='Отдыхай, следующий урок нескоро')
+        return
     print("DATA", data)
 
     # формирование текста сообщения

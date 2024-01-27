@@ -147,6 +147,15 @@ def get_studentdiary() -> dict:
     # получаем данные со страницы
     page = get_page(url)
     t.sleep(3)
+    # получить сегодняшний день недели
+    date = datetime.datetime.today()
+    week_day = date.weekday()
+    # Если сегодня или завтра воскресенье,
+    # то нужно изменить алгоритм получения данных
+    if week_day == 6 or week_day + 1 == 6:
+        page.find_element(By.CLASS_NAME, "button_next").click()
+        t.sleep(3)
+
     # далее происходит сложные переборы
     # и поиски нужной информации (мне лень объяснять)
     data = page.find_elements(By.CLASS_NAME, 'day_table')
