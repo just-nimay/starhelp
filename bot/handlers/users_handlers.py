@@ -97,8 +97,11 @@ async def homework(msg: types.Message, call=False) -> None:
         # В случае, если агрумент есть, то попытаться
         # преобразовать его в дату, если возникнет ошибка, то
         try:
-            datetime.datetime.strptime(args, '%d.%m.%Y').date()
-            homework_data = get_homework(args)
+            day = datetime.datetime.strptime(args, '%d.%m.%Y')
+            if day.weekday() == 6:
+                await msg.answer(text='Указанная дата - воскресенье, какая домашка?')
+                return
+            homework_data = get_homework(day)
         except Exception as e:
             print(e)
             # отправить пользователю сообщение о
@@ -195,6 +198,13 @@ async def calls(msg: types.Message) -> None:
 # функция, отвечающая за команду /schedule
 # подобна функции homework()
 async def schedule(msg: types.Message, call=False) -> None:
+    # если сегодня воскресенье,
+    # то сообщить что уроков нет и
+    # закончить выполнение команды
+    week_day = datetime.datetime.now().weekday()
+    if week_day == 6:
+        await msg.answer(text='Сегодня по расписанию отдыхать')
+        return
 
     args = ''
     if not call:
@@ -203,8 +213,11 @@ async def schedule(msg: types.Message, call=False) -> None:
 
     if len(args) != 0:
         try:
-            datetime.datetime.strptime(args, '%d.%m.%Y').date()
-            data = subjects_schedule(args)
+            day = datetime.datetime.strptime(args, '%d.%m.%Y')
+            if day.weekday() == 6:
+                await msg.answer(text='Указанная дата - воскресенье, какое расписание?')
+                return
+            data = subjects_schedule(day)
         except Exception as e:
             print(e)
             await msg.answer('Введите дату в формате DD.MM.YYYY')
