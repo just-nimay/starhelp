@@ -150,9 +150,9 @@ def get_studentdiary() -> dict:
     # получить сегодняшний день недели
     date = datetime.datetime.today()
     week_day = date.weekday()
-    # Если сегодня или завтра воскресенье,
+    # Если сегодня суббота,
     # то нужно изменить алгоритм получения данных
-    if week_day == 6 or week_day + 1 == 6:
+    if week_day + 1 == 6:
         page.find_element(By.CLASS_NAME, "button_next").click()
         t.sleep(3)
 
