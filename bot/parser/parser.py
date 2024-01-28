@@ -103,7 +103,7 @@ def get_page(url) -> webdriver.Chrome:
     # создаем браузер
     options = Options()
     options.add_argument("--headless")
-    browser = webdriver.Chrome()
+    browser = webdriver.Chrome(options=options)
 
     # открываем страницу
     browser.get(url)
