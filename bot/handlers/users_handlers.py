@@ -1,5 +1,6 @@
 # импорт необходимых библиотек
-from aiogram import types, Dispatcher
+from aiogram import types, Router
+from aiogram.filters import Command, CommandObject
 
 # импорт функций, создающих и обновляющих БД
 from bot.database.db import create_tables, update_data
@@ -52,30 +53,29 @@ async def cmd_start(msg: types.Message) -> None:
     # текст сообщения, которое бот отправит
     reply_text = f'привет, {msg.from_user.first_name}'
     # ответ на команду
-    await msg.answer(
-        text=reply_text,
-        reply=True
+    await msg.reply(
+        text=reply_text
     )
 
 
 # функция, отвечающая за команду /update_database
 async def update_database(msg: types.Message) -> None:
     # отправка сообщения
-    await msg.answer('Ваш запрос в обработке...', reply=True)
+    await msg.reply('Ваш запрос в обработке...')
     # вызов фунции, которая создаст таблицы, если их еще нет
     create_tables()
     # вывоз функции, которая обнавляет данные в БД
     update_data()
     # отправка сообщения
-    await msg.answer('База данных успешно обновлена!', reply=True)
+    await msg.answer('База данных успешно обновлена!')
 
 
 # функция, отвечающая за команду /homework
 # эта команда может примимать аргументы от пользователя: /homework 01.01.2024
 # так же эта функция может приять аргумент call, но если его не передать,
 # то будет присвоено переменно call значение False
-async def homework(msg: types.Message, call=False) -> None:
-    await msg.answer('Ваш запрос в обработке...', reply=True)
+async def homework(msg: types.Message, command: CommandObject, call=False) -> None:
+    await msg.reply('Ваш запрос в обработке...')
     # проверить какой сегодня день
     date = datetime.datetime.today()
     week_day = date.weekday()
@@ -91,7 +91,8 @@ async def homework(msg: types.Message, call=False) -> None:
     # В случае, если все же функция не вызывалась из дугой функции,
     # то значит что команда может именть аргументы
     if not call:
-        args = msg.get_args()
+        if command.args is not None:
+            args = command.args
 
     if len(args) != 0:
         # В случае, если агрумент есть, то попытаться
@@ -99,7 +100,7 @@ async def homework(msg: types.Message, call=False) -> None:
         try:
             day = datetime.datetime.strptime(args, '%d.%m.%Y')
             if day.weekday() == 6:
-                await msg.answer(text='Указанная дата - воскресенье, какая домашка?')
+                await msg.reply(text='Указанная дата - воскресенье, какая домашка?')
                 return
             homework_data = get_homework(day)
         except Exception as e:
@@ -145,7 +146,7 @@ async def lesson_now(msg: types.Message) -> None:
     # закончить выполнение команды
     week_day = datetime.datetime.now().weekday()
     if week_day == 6:
-        await msg.answer(text='Отдыхай, сегодня воскресенье')
+        await msg.reply(text='Отдыхай, сегодня воскресенье')
         return
 
     # получение данных о следующем уроке
@@ -153,7 +154,7 @@ async def lesson_now(msg: types.Message) -> None:
     # Если функц. вернула Null, то значит сегодня
     # суббота и уроков больше нет
     if data is None:
-        await msg.answer(text='Отдыхай, следующий урок нескоро')
+        await msg.reply(text='Отдыхай, следующий урок нескоро')
         return
     print("DATA", data)
 
@@ -189,26 +190,26 @@ async def calls(msg: types.Message) -> None:
         text += f'{call}. {timestart} - {timeend}\n'
 
     # отправка сообщения
-    await msg.answer(
-        text=text,
-        reply=True
+    await msg.reply(
+        text=text
     )
 
 
 # функция, отвечающая за команду /schedule
 # подобна функции homework()
-async def schedule(msg: types.Message, call=False) -> None:
+async def schedule(msg: types.Message, command: CommandObject, call=False) -> None:
     # если сегодня воскресенье,
     # то сообщить что уроков нет и
     # закончить выполнение команды
     week_day = datetime.datetime.now().weekday()
     if week_day == 6:
-        await msg.answer(text='Сегодня по расписанию отдыхать')
+        await msg.reply(text='Сегодня по расписанию отдыхать')
         return
 
     args = ''
     if not call:
-        args = msg.get_args()
+        if command.args is not None:
+            args = command.args
     data = subjects_schedule()
 
     if len(args) != 0:
@@ -217,7 +218,7 @@ async def schedule(msg: types.Message, call=False) -> None:
             if day.weekday() == 6:
                 await msg.answer(text='Указанная дата - воскресенье, какое расписание?')
                 return
-            data = subjects_schedule(day)
+            data = subjects_schedule(args)
         except Exception as e:
             print(e)
             await msg.answer('Введите дату в формате DD.MM.YYYY')
@@ -232,9 +233,8 @@ async def schedule(msg: types.Message, call=False) -> None:
 
             text += f'{sub_numb}. {subject_name}. каб. {studyroom}\n'
 
-    await msg.answer(
-        text=text,
-        reply=True
+    await msg.reply(
+        text=text
     )
 
 
@@ -262,7 +262,8 @@ async def listening(msg: types.Message) -> None:
                 # вызов фукнций команд
                 command = BOT_CMDS[bot_cmd]
                 if command == 1:
-                    await homework(msg, call=True)
+                    cmdObj = CommandObject()
+                    await homework(msg, command=cmdObj, call=True)
                     return
                 if command == 2:
                     await lesson_now(msg)
@@ -271,21 +272,25 @@ async def listening(msg: types.Message) -> None:
                     await calls(msg)
                     return
                 if command == 4:
-                    await schedule(msg, call=True)
+                    cmdObj = CommandObject()
+                    await schedule(msg, command=cmdObj, call=True)
                     return
         # если команда не подошла, отпавить сообщение
-        await msg.answer(
+        await msg.reply(
             text='Команда не распознана'
         )
 
 
 # функция, регестрирущая команды
-def register_user_handlers(dp: Dispatcher) -> None:
+def register_user_router() -> Router:
+    router = Router()
 
-    dp.register_message_handler(cmd_start, commands=['start'])
-    dp.register_message_handler(lesson_now, commands=['lesson_now'])
-    dp.register_message_handler(homework, commands=['homework'])
-    dp.register_message_handler(update_database, commands=['update_database'])
-    dp.register_message_handler(calls, commands=['calls'])
-    dp.register_message_handler(schedule, commands=['schedule'])
-    dp.register_message_handler(listening, lambda msg: msg.text)
+    router.message.register(cmd_start, Command('start'))
+    router.message.register(lesson_now, Command('lesson_now'))
+    router.message.register(homework, Command('homework'))
+    router.message.register(update_database, Command('update_db'))
+    router.message.register(calls, Command('calls'))
+    router.message.register(schedule, Command('schedule'))
+    router.message.register(listening)
+
+    return router
