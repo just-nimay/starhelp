@@ -79,8 +79,9 @@ def close_site(page: webdriver.Chrome) -> None:
         page.find_element(
             By.XPATH, "//*[contains(text(), 'Выход')]").click()
         t.sleep(0.2)
-        page.find_element(
-            By.XPATH, "//*[contains(text(), 'Да')]").click()
+        page.find_element(By.CLASS_NAME, "glyphicon-ok-sign").click()
+        #page.find_element(
+        #    By.XPATH, "//*[contains(text(), ' Да ')]").click()
 
 
 # функция проверки существования
@@ -96,7 +97,7 @@ def check_exists_by_classname(driver, name):
 # Фунция загрузки страницы
 # принимает ссылку на любую страницу
 # домена sgo.rso23.ru
-def get_page(url) -> webdriver.Chrome:
+def get_page(url, diary=False) -> webdriver.Chrome:
     # загружаем данные для входа
     load_dotenv('.env')
 
@@ -128,10 +129,14 @@ def get_page(url) -> webdriver.Chrome:
     t.sleep(0.5)
     browser.find_element(By.CLASS_NAME, "primary-button").click()
     t.sleep(0.5)
-    if check_exists_by_xpath(browser, "//*[contains(text(), 'Продолжить')]"):
-        browser.find_element(
-            By.XPATH, "//*[contains(text(), 'Продолжить')]").click()
     t.sleep(2)
+    browser.find_element(By.CLASS_NAME, "bootstrap-dialog-close-button").click()
+    t.sleep(2.5)
+    if not diary:
+        return browser
+
+    browser.find_element(By.XPATH, "//*[contains(text(), 'Открыть дневник')]").click()
+    t.sleep(4)
 
     # когда мы оказались на нужной странице
     # уже в нашем аккауне, возвращаем
@@ -145,7 +150,7 @@ def get_studentdiary() -> dict:
     url = 'https://sgo.rso23.ru/angular/school/studentdiary/'
 
     # получаем данные со страницы
-    page = get_page(url)
+    page = get_page(url, diary=True)
     t.sleep(3)
     # получить сегодняшний день недели
     date = datetime.datetime.today()
