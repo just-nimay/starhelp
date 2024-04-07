@@ -80,7 +80,7 @@ def close_site(page: webdriver.Chrome) -> None:
             By.XPATH, "//*[contains(text(), 'Выход')]").click()
         t.sleep(0.2)
         page.find_element(By.CLASS_NAME, "glyphicon-ok-sign").click()
-        #page.find_element(
+        # page.find_element(
         #    By.XPATH, "//*[contains(text(), ' Да ')]").click()
 
 
@@ -103,7 +103,7 @@ def get_page(url, diary=False) -> webdriver.Chrome:
 
     # создаем браузер
     options = Options()
-    options.add_argument("--headless")
+    # options.add_argument("--headless")
     browser = webdriver.Chrome(options=options)
 
     # открываем страницу
@@ -129,13 +129,16 @@ def get_page(url, diary=False) -> webdriver.Chrome:
     t.sleep(0.5)
     browser.find_element(By.CLASS_NAME, "primary-button").click()
     t.sleep(0.5)
-    t.sleep(2)
-    browser.find_element(By.CLASS_NAME, "bootstrap-dialog-close-button").click()
+    t.sleep(5)
+    if check_exists_by_classname(browser, 'bootstrap-dialog-close-button'):
+        browser.find_element(
+            By.CLASS_NAME, "bootstrap-dialog-close-button").click()
     t.sleep(2.5)
     if not diary:
         return browser
 
-    browser.find_element(By.XPATH, "//*[contains(text(), 'Открыть дневник')]").click()
+    browser.find_element(
+        By.XPATH, "//*[contains(text(), 'Открыть дневник')]").click()
     t.sleep(4)
 
     # когда мы оказались на нужной странице
